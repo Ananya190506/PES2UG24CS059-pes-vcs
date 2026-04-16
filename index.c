@@ -178,40 +178,58 @@ int index_load(Index *index) {
 //
 // Returns 0 on success, -1 on error.
 int index_save(const Index *index) {
-    // TODO: Implement atomic index saving
-    // (See Lab Appendix for logical steps)
-    
-    // 1. Sort entries alphabetically by path
-    Index sorted_idx = *index;
-    qsort(sorted_idx.entries, sorted_idx.count, sizeof(IndexEntry), compare_index_entries);
+    // 1. Sort entries alphabetically by path in-place.
+    // We cast to (Index*) because qsort modifies the array.
+    Index *idx = (Index *)index;
+    if (idx->count > 1) {
+        qsort(idx->entries, idx->count, sizeof(IndexEntry), compare_index_entries);
+    }
 
-    // 2. Open temporary file
-    char temp_path[] = INDEX_FILE ".tmp_XXXXXX";
+    // 2. Open temporary file. 
+    // mkstemp requires the template to end in exactly "XXXXXX".
+    char temp_path[512];
+    snprintf(temp_path, sizeof(temp_path), "%sXXXXXX", INDEX_FILE);
+    
     int fd = mkstemp(temp_path);
-    if (fd < 0) return -1;
+    if (fd < 0) {
+        perror("mkstemp");
+        return -1;
+    }
     
     FILE *f = fdopen(fd, "w");
     if (!f) {
+        perror("fdopen");
         close(fd);
-        return -1;
-    }
-    // 3. Write entries to temp file
-    for (int i = 0; i < sorted_idx.count; i++) {
-        const IndexEntry *e = &sorted_idx.entries[i];
-        char hex[HASH_HEX_SIZE + 1];
-        hash_to_hex(&e->hash, hex);
-        fprintf(f, "%o %s %lu %zu %s\n", e->mode, hex, e->mtime_sec, e->size, e->path);
-    }
-
-    // 4. Atomic flush and rename
-    fflush(f);
-    fsync(fileno(f));
-    fclose(f);
-
-    if (rename(temp_path, INDEX_FILE) != 0) {
         unlink(temp_path);
         return -1;
     }
+
+    // 3. Write entries to temp file
+    for (int i = 0; i < idx->count; i++) {
+        const IndexEntry *e = &idx->entries[i];
+        char hex[HASH_HEX_SIZE + 1];
+        hash_to_hex(&e->hash, hex);
+        
+        // Using explicit casts to match format specifiers and avoid warnings
+        fprintf(f, "%o %s %lu %u %s\n", 
+                e->mode, 
+                hex, 
+                (unsigned long)e->mtime_sec, 
+                (unsigned int)e->size, 
+                e->path);
+    }
+
+    // 4. Atomic flush, sync, and rename
+    fflush(f);
+    fsync(fileno(f));
+    fclose(f); // This also closes the underlying fd
+
+    if (rename(temp_path, INDEX_FILE) != 0) {
+        perror("rename");
+        unlink(temp_path);
+        return -1;
+    }
+    
     return 0;
 }
 
