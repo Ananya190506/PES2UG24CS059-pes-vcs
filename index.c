@@ -137,6 +137,32 @@ int index_status(const Index *index) {
 int index_load(Index *index) {
     // TODO: Implement index loading
     // (See Lab Appendix for logical steps)
+    // TODO: Implement index loading
+    // (See Lab Appendix for logical steps)
+   index->count = 0;
+    FILE *f = fopen(INDEX_FILE, "r");
+    if (!f) return 0; // If index doesn't exist yet, it's just empty (not an error)
+
+    char hex[HASH_HEX_SIZE + 1];
+    char path[512];
+    uint32_t mode;
+    long mtime;
+    size_t size;
+
+    // Format: <mode> <hash> <mtime> <size> <path>
+    while (fscanf(f, "%o %64s %ld %zu %511s", &mode, hex, &mtime, &size, path) == 5) {
+        if (index->count >= MAX_INDEX_ENTRIES) break;
+
+        IndexEntry *entry = &index->entries[index->count++];
+        entry->mode = mode;
+        hex_to_hash(hex, &entry->hash);
+        entry->mtime_sec = (uint64_t)mtime;
+        entry->size = size;
+        strncpy(entry->path, path, sizeof(entry->path) - 1);
+    }
+
+    fclose(f);
+    return 0;
     (void)index;
     return -1;
 }
