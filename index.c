@@ -195,6 +195,24 @@ int index_save(const Index *index) {
         close(fd);
         return -1;
     }
+    // 3. Write entries to temp file
+    for (int i = 0; i < sorted_idx.count; i++) {
+        const IndexEntry *e = &sorted_idx.entries[i];
+        char hex[HASH_HEX_SIZE + 1];
+        hash_to_hex(&e->hash, hex);
+        fprintf(f, "%o %s %lu %zu %s\n", e->mode, hex, e->mtime_sec, e->size, e->path);
+    }
+
+    // 4. Atomic flush and rename
+    fflush(f);
+    fsync(fileno(f));
+    fclose(f);
+
+    if (rename(temp_path, INDEX_FILE) != 0) {
+        unlink(temp_path);
+        return -1;
+    }
+    return 0;
 }
 
 // Stage a file for the next commit.
