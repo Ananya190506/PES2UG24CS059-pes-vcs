@@ -136,6 +136,26 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
         free(full_obj);
         return -1;
     }
+    // 6. fsync() and rename()
+    fsync(fd);
+    close(fd);
+
+    object_path(id_out, path, sizeof(path));
+    if (rename(temp_path, path) != 0) {
+        unlink(temp_path);
+        free(full_obj);
+        return -1;
+    }
+
+    // 7. fsync the directory to persist the rename
+    int dir_fd = open(dir_path, O_RDONLY);
+    if (dir_fd >= 0) {
+        fsync(dir_fd);
+        close(dir_fd);
+    }
+
+    free(full_obj);
+    return 0;
 
 }
 
