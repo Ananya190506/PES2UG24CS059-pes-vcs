@@ -185,9 +185,27 @@ static int build_tree_recursive(const IndexEntry *entries, int count, const char
             i += sub_count; // Skip all files that were just added to the subtree
         }
     }
+    // Serialize and write this tree object to the store
+    void *data;
+    size_t len;
+    if (tree_serialize(&tree, &data, &len) != 0) return -1;
+    if (object_write(OBJ_TREE, data, len, id_out) != 0) {
+        free(data);
+        return -1;
+    }
+
+    free(data);
+    return 0;
+}
 int tree_from_index(ObjectID *id_out) {
     // TODO: Implement recursive tree building
     // (See Lab Appendix for logical steps)
-    (void)id_out;
-    return -1;
+
+   Index idx;
+    if (index_load(&idx) != 0) return -1;
+    if (idx.count == 0) return -1; // Cannot commit an empty index
+
+    // The index is usually sorted alphabetically by path, 
+    // which is required for our grouping logic to work.
+    return build_tree_recursive(idx.entries, idx.count, "", id_out);
 }
