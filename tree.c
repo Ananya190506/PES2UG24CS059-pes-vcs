@@ -174,6 +174,17 @@ static int build_tree_recursive(const IndexEntry *entries, int count, const char
                    strncmp(entries[i + sub_count].path, new_prefix, new_prefix_len) == 0) {
                 sub_count++;
             }
+            TreeEntry *te = &tree.entries[tree.count++];
+            te->mode = MODE_DIR;
+            strncpy(te->name, subdir_name, sizeof(te->name) - 1);
+            
+            if (build_tree_recursive(&entries[i], sub_count, new_prefix, &te->hash) != 0) {
+                return -1;
+            }
+
+            i += sub_count; // Skip all files that were just added to the subtree
+        }
+    }
 int tree_from_index(ObjectID *id_out) {
     // TODO: Implement recursive tree building
     // (See Lab Appendix for logical steps)
