@@ -244,6 +244,26 @@ int index_add(Index *index, const char *path) {
     }
     fclose(f);
 
-    (void)index; (void)path;
-    return -1;
+    ObjectID blob_id;
+    if (object_write(OBJ_BLOB, data, st.st_size, &blob_id) != 0) {
+        free(data);
+        return -1;
+    }
+    free(data);
+
+    // 3. Update existing entry or create new one
+    IndexEntry *entry = index_find(index, path);
+    if (!entry) {
+        if (index->count >= MAX_INDEX_ENTRIES) return -1;
+        entry = &index->entries[index->count++];
+        strncpy(entry->path, path, sizeof(entry->path) - 1);
+    }
+
+    entry->mode = get_file_mode(path);
+    entry->hash = blob_id;
+    entry->mtime_sec = (uint64_t)st.st_mtime;
+    entry->size = (size_t)st.st_size;
+
+    // 4. Persist the updated index
+    return index_save(index);
 }
