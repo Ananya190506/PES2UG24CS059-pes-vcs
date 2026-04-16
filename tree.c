@@ -164,6 +164,16 @@ static int build_tree_recursive(const IndexEntry *entries, int count, const char
             char subdir_name[256] = {0};
             size_t subdir_name_len = slash - relative_path;
             strncpy(subdir_name, relative_path, subdir_name_len);
+            // Group all entries starting with "prefix + subdir_name + /"
+            char new_prefix[512];
+            snprintf(new_prefix, sizeof(new_prefix), "%s%s/", prefix, subdir_name);
+            size_t new_prefix_len = strlen(new_prefix);
+
+            int sub_count = 0;
+            while ((i + sub_count) < count && 
+                   strncmp(entries[i + sub_count].path, new_prefix, new_prefix_len) == 0) {
+                sub_count++;
+            }
 int tree_from_index(ObjectID *id_out) {
     // TODO: Implement recursive tree building
     // (See Lab Appendix for logical steps)
