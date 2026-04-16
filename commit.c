@@ -210,4 +210,9 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     } else {
         commit.has_parent = 0;
     }
+    // 3. Populate metadata (Author from pes.h, current time, and message)
+    snprintf(commit.author, sizeof(commit.author), "%s", pes_author());
+    commit.timestamp = (uint64_t)time(NULL);
+    snprintf(commit.message, sizeof(commit.message), "%s", message);
+
 }
