@@ -225,5 +225,6 @@ int commit_create(const char *message, ObjectID *commit_id_out) {
     }
     free(data);
 
-
+// 6. Update HEAD/branch to point to the new commit hash
+    return head_update(commit_id_out);
 }
