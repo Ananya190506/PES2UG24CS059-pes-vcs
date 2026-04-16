@@ -114,7 +114,29 @@ int object_write(ObjectType type, const void *data, size_t len, ObjectID *id_out
         free(full_obj);
         return 0;
     }
-    
+    // 4. Create shard directory (.pes/objects/XX/)
+    char path[512], hex[HASH_HEX_SIZE + 1];
+    hash_to_hex(id_out, hex);
+    char dir_path[512];
+    snprintf(dir_path, sizeof(dir_path), "%s/%.2s", OBJECTS_DIR, hex);
+    mkdir(dir_path, 0755); // Returns -1 if exists, which is fine
+
+    // 5. Write to a temporary file in the same shard directory
+    char temp_path[512];
+    snprintf(temp_path, sizeof(temp_path), "%s/tmp_XXXXXX", dir_path);
+    int fd = mkstemp(temp_path);
+    if (fd < 0) {
+        free(full_obj);
+        return -1;
+    }
+
+    if (write(fd, full_obj, full_len) != (ssize_t)full_len) {
+        close(fd);
+        unlink(temp_path);
+        free(full_obj);
+        return -1;
+    }
+
 }
 
 // Read an object from the store.
