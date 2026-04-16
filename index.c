@@ -180,8 +180,21 @@ int index_load(Index *index) {
 int index_save(const Index *index) {
     // TODO: Implement atomic index saving
     // (See Lab Appendix for logical steps)
-    (void)index;
-    return -1;
+    
+    // 1. Sort entries alphabetically by path
+    Index sorted_idx = *index;
+    qsort(sorted_idx.entries, sorted_idx.count, sizeof(IndexEntry), compare_index_entries);
+
+    // 2. Open temporary file
+    char temp_path[] = INDEX_FILE ".tmp_XXXXXX";
+    int fd = mkstemp(temp_path);
+    if (fd < 0) return -1;
+    
+    FILE *f = fdopen(fd, "w");
+    if (!f) {
+        close(fd);
+        return -1;
+    }
 }
 
 // Stage a file for the next commit.
