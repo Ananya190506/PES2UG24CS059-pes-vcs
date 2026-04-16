@@ -156,6 +156,14 @@ static int build_tree_recursive(const IndexEntry *entries, int count, const char
             
             i++; // Move to next entry
         }
+        else {
+            // CASE 2: It's a subdirectory
+            if (tree.count >= MAX_TREE_ENTRIES) return -1;
+
+            // Identify the subdirectory name (e.g., "src")
+            char subdir_name[256] = {0};
+            size_t subdir_name_len = slash - relative_path;
+            strncpy(subdir_name, relative_path, subdir_name_len);
 int tree_from_index(ObjectID *id_out) {
     // TODO: Implement recursive tree building
     // (See Lab Appendix for logical steps)
