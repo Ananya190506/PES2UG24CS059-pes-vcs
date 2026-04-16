@@ -227,6 +227,23 @@ int index_save(const Index *index) {
 int index_add(Index *index, const char *path) {
     // TODO: Implement file staging
     // (See Lab Appendix for logical steps)
+    // 1. Get file metadata
+    struct stat st;
+    if (stat(path, &st) != 0) return -1;
+    if (!S_ISREG(st.st_mode)) return -1; // Only stage regular files
+
+    // 2. Read file content and write as blob
+    FILE *f = fopen(path, "rb");
+    if (!f) return -1;
+    
+    void *data = malloc(st.st_size);
+    if (fread(data, 1, st.st_size, f) != (size_t)st.st_size) {
+        free(data);
+        fclose(f);
+        return -1;
+    }
+    fclose(f);
+
     (void)index; (void)path;
     return -1;
 }
