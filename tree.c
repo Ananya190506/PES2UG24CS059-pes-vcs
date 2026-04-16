@@ -15,6 +15,7 @@
 #include <string.h>
 #include <dirent.h>
 #include <sys/stat.h>
+#include "index.h"
 
 // ─── Mode Constants ─────────────────────────────────────────────────────────
 
@@ -129,6 +130,32 @@ int tree_serialize(const Tree *tree, void **data_out, size_t *len_out) {
 //   - object_write    : save that binary buffer to the store as OBJ_TREE
 //
 // Returns 0 on success, -1 on error.
+static int build_tree_recursive(const IndexEntry *entries, int count, const char *prefix, ObjectID *id_out) {
+    Tree tree;
+    tree.count = 0;
+    size_t prefix_len = strlen(prefix);
+
+    for (int i = 0; i < count; ) {
+        // Skip entries that don't belong to this prefix (safety check)
+        if (strncmp(entries[i].path, prefix, prefix_len) != 0) {
+            i++;
+            continue;
+        }
+
+        const char *relative_path = entries[i].path + prefix_len;
+        const char *slash = strchr(relative_path, '/');
+
+        if (slash == NULL) {
+            // CASE 1: It's a file in the current directory
+            if (tree.count >= MAX_TREE_ENTRIES) return -1;
+            
+            TreeEntry *te = &tree.entries[tree.count++];
+            te->mode = entries[i].mode;
+            te->hash = entries[i].hash;
+            strncpy(te->name, relative_path, sizeof(te->name) - 1);
+            
+            i++; // Move to next entry
+        }
 int tree_from_index(ObjectID *id_out) {
     // TODO: Implement recursive tree building
     // (See Lab Appendix for logical steps)
