@@ -196,6 +196,18 @@ int head_update(const ObjectID *new_commit) {
 int commit_create(const char *message, ObjectID *commit_id_out) {
     // TODO: Implement commit creation
     // (See Lab Appendix for logical steps)
-    (void)message; (void)commit_id_out;
-    return -1;
+    
+   Commit commit;
+    memset(&commit, 0, sizeof(Commit));
+
+    // 1. Build a tree from the index (the staged state)
+    if (tree_from_index(&commit.tree) != 0) return -1;
+
+    // 2. Read current HEAD to find the parent commit
+    // Returns 0 if a parent exists, -1 if this is the first commit
+    if (head_read(&commit.parent) == 0) {
+        commit.has_parent = 1;
+    } else {
+        commit.has_parent = 0;
+    }
 }
